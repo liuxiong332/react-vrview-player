@@ -18,11 +18,11 @@ Object.assign(config, {
 var compiler = webpack(config);
 var server = new WebpackDevServer(compiler, {
   hot: true,
-  historyApiFallback: true,
 
   publicPath: config.output.publicPath,
   headers: { "X-Custom-Header": "yes" },
-  stats: { colors: true }
+  stats: { colors: true },
+  features: ["setup", "headers", "middleware"],
 });
 
 module.exports = server;
