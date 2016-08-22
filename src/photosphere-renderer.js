@@ -51,25 +51,36 @@ class PhotosphereRenderer extends Emitter {
     this.renderer = renderer;
     this.effect = effect;
     this.controls = controls;
-    // this.manager = new WebVRManager(renderer, effect, {isUndistorted: true});
-
     this.initScenes_();
 
-    // The vertex distorter.
-    // this.distorter = new VertexDistorter(this.manager.hmd);
+    window.addEventListener('resize', this.resize.bind(this));
+    // this.requestPresent();
+  }
 
-    // this.manager.on('modechange', this.onModeChange_.bind(this));
-    // this.manager.on('viewerchange', this.onViewerChange_.bind(this));
+  requestPresent() {
+    return this.effect.requestPresent();
+  }
 
-    // Watch the resize event.
-    window.addEventListener('resize', this.onResize_.bind(this));
+  exitPresent() {
+    return this.effect.exitPresent();
+  }
 
-    var that = this;
+  isPresenting() {
+    return this.effect.isPresenting();
   }
 
   render(timestamp) {
     this.controls.update();
     this.effect.render(this.scene, this.camera);
+  }
+
+  resize() {
+    let canvas = this.renderer.domElement;
+    if (!this.effect.getVRDisplay()) {
+      let width = canvas.offsetWidth;
+      let height = canvas.offsetHeight;
+      this.effect.setSize(width, height);
+    }
   }
 
   setDefaultLookDirection(phi) {
@@ -174,37 +185,6 @@ class PhotosphereRenderer extends Emitter {
 
       this.hmd.setRenderRect(leftRect, rightRect);
     }
-  }
-
-  onModeChange_(newMode, oldMode) {
-    console.log('onModeChange_', newMode);
-
-    var coefficients;
-    if (newMode == WebVRManager.Modes.VR) {
-      // Entering VR mode.
-      this.distorter.setEnabled(true);
-      this.updateMaterial_();
-    } else if (oldMode == WebVRManager.Modes.VR) {
-      // Leaving VR mode.
-      this.distorter.setEnabled(false);
-      this.updateMaterial_();
-    }
-
-    if (window.analytics) {
-      analytics.logModeChanged(newMode);
-    }
-  }
-
-  onViewerChange_ = function(newViewer) {
-    console.log('onViewerChange_', newViewer);
-
-    // Reset the photosphere with new coefficients.
-    this.updateMaterial_();
-    this.updateRenderRect_();
-  }
-
-  onResize_() {
-    this.updateRenderRect_();
   }
 
 }
