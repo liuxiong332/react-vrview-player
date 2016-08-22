@@ -14,17 +14,16 @@
  */
 
 var Emitter = require('./emitter');
-var Eyes = require('./eyes');
-var THREE = require('../node_modules/three/three');
-THREE.VRControls = require('../node_modules/three/examples/js/controls/VRControls');
-THREE.VREffect = require('../node_modules/three/examples/js/effects/VREffect');
+var THREE = require('three');
+window.THREE = THREE;
+require('three/examples/js/controls/VRControls');
+require('three/examples/js/effects/VREffect');
 var Util = require('./util');
-var VertexDistorter = require('./vertex-distorter');
-require('../node_modules/webvr-boilerplate/build/webvr-manager');
 
 function PhotosphereRenderer() {
   this.init();
 }
+
 PhotosphereRenderer.prototype = new Emitter();
 
 PhotosphereRenderer.prototype.init = function() {
@@ -50,32 +49,25 @@ PhotosphereRenderer.prototype.init = function() {
   this.renderer = renderer;
   this.effect = effect;
   this.controls = controls;
-  this.manager = new WebVRManager(renderer, effect, {isUndistorted: true});
+  // this.manager = new WebVRManager(renderer, effect, {isUndistorted: true});
 
   this.initScenes_();
 
   // The vertex distorter.
-  this.distorter = new VertexDistorter(this.manager.getDeviceInfo());
+  // this.distorter = new VertexDistorter(this.manager.hmd);
 
-  this.manager.on('modechange', this.onModeChange_.bind(this));
-  this.manager.on('viewerchange', this.onViewerChange_.bind(this));
+  // this.manager.on('modechange', this.onModeChange_.bind(this));
+  // this.manager.on('viewerchange', this.onViewerChange_.bind(this));
 
   // Watch the resize event.
   window.addEventListener('resize', this.onResize_.bind(this));
 
   var that = this;
-  navigator.getVRDevices().then(function(devices) {
-    devices.forEach(function(device) {
-      if (device instanceof HMDVRDevice) {
-        that.hmd = device;
-      }
-    });
-  });
 };
 
 PhotosphereRenderer.prototype.render = function(timestamp) {
   this.controls.update();
-  this.manager.render(this.scenes, this.camera, timestamp);
+  this.effect.render(this.scene, this.camera);
 };
 
 PhotosphereRenderer.prototype.setDefaultLookDirection = function(phi) {
@@ -119,28 +111,13 @@ PhotosphereRenderer.prototype.set360Video = function(videoElement, opt_params) {
 };
 
 PhotosphereRenderer.prototype.initScenes_ = function() {
-  this.sceneLeft = this.createScene_();
-  this.sceneRight = this.createScene_();
-  this.sceneLeft.add(this.camera.parent);
-
-  this.scenes = [this.sceneLeft, this.sceneRight];
-  this.eyes = [Eyes.LEFT, Eyes.RIGHT];
+  this.scene = this.createScene_();
+  this.scene.add(this.camera.parent);
 };
 
 PhotosphereRenderer.prototype.onTextureLoaded_ = function(texture) {
-  var sphereLeft;
-  var sphereRight;
-  if (this.isStereo) {
-    sphereLeft = this.createPhotosphere_(texture, {offsetY: 0.5, scaleY: 0.5});
-    sphereRight = this.createPhotosphere_(texture, {offsetY: 0, scaleY: 0.5});
-  } else {
-    sphereLeft = this.createPhotosphere_(texture);
-    sphereRight = this.createPhotosphere_(texture);
-  }
-
-  this.sceneLeft.getObjectByName('photo').children = [sphereLeft];
-  this.sceneRight.getObjectByName('photo').children = [sphereRight];
-
+  var sphere = this.createPhotosphere_(texture);
+  this.scene.getObjectByName('photo').children = [sphere];
   this.emit('load');
 };
 
@@ -148,33 +125,15 @@ PhotosphereRenderer.prototype.onTextureError_ = function(error) {
   this.emit('error', 'Unable to load texture from ' + this.src);
 };
 
-
-PhotosphereRenderer.prototype.createPhotosphere_ = function(texture, opt_params) {
-  var p = opt_params || {};
-  p.scaleX = p.scaleX || 1;
-  p.scaleY = p.scaleY || 1;
-  p.offsetX = p.offsetX || 0;
-  p.offsetY = p.offsetY || 0;
-  p.phiStart = p.phiStart || 0;
-  p.phiLength = p.phiLength || Math.PI * 2;
-  p.thetaStart = p.thetaStart || 0;
-  p.thetaLength = p.thetaLength || Math.PI;
+const XRevertMatrix = new THREE.Matrix4().makeScale(-1, 1, 1);
+PhotosphereRenderer.prototype.createPhotosphere_ = function(texture) {
 
   var geometry = new THREE.SphereGeometry(1, 48, 48,
-      p.phiStart, p.phiLength, p.thetaStart, p.thetaLength);
-  geometry.applyMatrix(new THREE.Matrix4().makeScale(-1, 1, 1));
-  var uvs = geometry.faceVertexUvs[0];
-  for (var i = 0; i < uvs.length; i ++) {
-    for (var j = 0; j < 3; j ++) {
-      uvs[i][j].x *= p.scaleX;
-      uvs[i][j].x += p.offsetX;
-      uvs[i][j].y *= p.scaleY;
-      uvs[i][j].y += p.offsetY;
-    }
-  }
+      0, Math.PI * 2, 0, Math.PI);
+  geometry.applyMatrix(XRevertMatrix);
 
   var material = new THREE.MeshBasicMaterial({ map: texture });
-  this.distorter.setMap(texture);
+  // this.distorter.setMap(texture);
   var out = new THREE.Mesh(geometry, material);
   out.renderOrder = -1;
   return out;

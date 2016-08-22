@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-Util = window.Util || {};
+var Util = window.Util || {};
 
 Util.isDataURI = function(src) {
   return src && src.indexOf('data:') == 0;
@@ -101,7 +101,7 @@ Util.getQueryParameter = function(name) {
 // From http://stackoverflow.com/questions/11871077/proper-way-to-detect-webgl-support.
 Util.isWebGLEnabled = function() {
   var canvas = document.createElement('canvas');
-  try { gl = canvas.getContext("webgl"); }
+  try { var gl = canvas.getContext("webgl"); }
   catch (x) { gl = null; }
 
   if (gl == null) {

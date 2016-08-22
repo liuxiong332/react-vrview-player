@@ -34,22 +34,8 @@ SceneInfo.prototype.isComplete = function() {
   return !!this.image || !!this.video;
 };
 
-SceneInfo.prototype.toObject = function() {
-  return {
-    id: this.id || null,
-    title: this.title || null,
-    image: this.image,
-    preview: this.preview,
-    isStereo: this.isStereo,
-    audio: this.audio,
-    yaw: this.yaw || null,
-    video: this.video || null,
-  };
-};
-
 SceneInfo.prototype.isImageDataURI = function() {
   return this.image.indexOf('data:') == 0;
 };
-
 
 module.exports = SceneInfo;

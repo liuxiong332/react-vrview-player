@@ -15,7 +15,7 @@
 
 // Disable distortion provided by the boilerplate because we are doing
 // vertex-based distortion.
-WebVRConfig = window.WebVRConfig || {}
+var WebVRConfig = window.WebVRConfig || {}
 WebVRConfig.PREVENT_DISTORTION = true;
 
 // Initialize the loading indicator as quickly as possible to give the user
@@ -24,21 +24,12 @@ var LoadingIndicator = require('./loading-indicator');
 var loadIndicator = new LoadingIndicator();
 
 // Include relevant polyfills.
-require('../node_modules/webvr-polyfill/build/webvr-polyfill');
-var ES6Promise = require('../node_modules/es6-promise/dist/es6-promise.min');
-// Polyfill ES6 promises for IE.
-ES6Promise.polyfill();
+require('webvr-polyfill/src/main');
 
 var PhotosphereRenderer = require('./photosphere-renderer');
 var SceneLoader = require('./scene-loader');
-var Stats = require('../node_modules/stats-js/build/stats.min');
+var Stats = require('./stats');
 var Util = require('./util');
-
-// Include the DeviceMotionReceiver for the iOS cross domain iframe workaround.
-// This is a workaround for https://bugs.webkit.org/show_bug.cgi?id=150072.
-var DeviceMotionReceiver = require('./device-motion-receiver');
-var dmr = new DeviceMotionReceiver();
-
 
 window.addEventListener('load', init);
 
@@ -178,11 +169,13 @@ function showError(message, opt_title) {
   loadIndicator.hide();
 
   var error = document.querySelector('#error');
-  error.classList.add('visible');
-  error.querySelector('.message').innerHTML = message;
+  if (error) {
+    error.classList.add('visible');
+    error.querySelector('.message').innerHTML = message;
 
-  var title = (opt_title !== undefined ? opt_title : 'Error');
-  error.querySelector('.title').innerHTML = title;
+    var title = (opt_title !== undefined ? opt_title : 'Error');
+    error.querySelector('.title').innerHTML = title;
+  }
 }
 
 function hideError() {
