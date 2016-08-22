@@ -1,6 +1,5 @@
 /* eslint react/no-danger:0 */
 import React, {Component, PropTypes} from 'react';
-import {RouterContext} from 'react-router';
 import {renderToString} from 'react-dom-stream/server';
 
 // Injects the server rendered state and app into a basic html template
@@ -8,14 +7,14 @@ export default class Html extends Component {
   static propTypes = {
     title: PropTypes.string.isRequired,
     assets: PropTypes.object,
-    renderProps: PropTypes.object,
+    component: PropTypes.object,
   }
 
   render() {
     const PROD = !__DEV__;
-    const {title, assets, renderProps} = this.props;
+    const {title, assets, component} = this.props;
     const {main} = assets || {};
-    const root = PROD && renderToString(<RouterContext {...renderProps}/>);
+    const root = PROD && renderToString(<component />);
     return (
       <html>
         <head>

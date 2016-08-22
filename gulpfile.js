@@ -62,13 +62,13 @@ gulp.task('webpack:production', ['clean', 'babel'], webpackBuild(require('./webp
 gulp.task('build', ['webpack:production']);
 
 gulp.task('start', function(done) {
-  runCmd('babel-node', ['./src/server/server.js'], {
+  runCmd('babel-node', ['./config/server/server.js'], {
     env: { NODE_ENV: 'development' }
   }, done);
 });
 
 gulp.task('run', function(done) {
-  runNodeCmd('./lib/server/server.js', {
+  runCmd('babel-node', ['./config/server/server.js'], {
     env: { NODE_ENV: 'production' }
   }, done);
 });

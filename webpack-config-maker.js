@@ -7,7 +7,7 @@ var loadersByExtension = require("./config/loadersByExtension");
 module.exports = function(options) {
   options = options || {};
   var filename = options.longTermCaching ? "bundle.[hash].js" : "bundle.js";
-  var entry = './src/client/app';
+  var entry = './src/render';
   var output = {
     path: path.resolve(__dirname, './dist'),
     filename: filename,
