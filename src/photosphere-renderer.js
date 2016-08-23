@@ -58,17 +58,19 @@ class PhotosphereRenderer extends Emitter {
     return this.renderer.domElement;
   }
 
+  requestFullscreen() {
+    return requestFullscreen(this.renderer.domElement);
+  }
+
+  exitFullscreen() {
+    return exitFullscreen(this.renderer.domElement);
+  }
+
   requestPresent() {
-    if (!this.effect.getVRDisplay()) {
-      return requestFullscreen(this.renderer.domElement);
-    }
     return this.effect.requestPresent();
   }
 
   exitPresent() {
-    if (!this.effect.getVRDisplay()) {
-      return exitFullscreen(this.renderer.domElement);
-    }
     return this.effect.exitPresent();
   }
 
@@ -162,37 +164,6 @@ class PhotosphereRenderer extends Emitter {
 
     return scene;
   }
-
-  updateMaterial_(material_FOO) {
-    for (var i = 0; i < this.scenes.length; i++) {
-      var eye = this.eyes[i];
-      var material = this.distorter.getShaderMaterial(eye);
-      var scene = this.scenes[i];
-      var children = scene.getObjectByName('photo').children;
-      for (var j = 0; j < children.length; j++) {
-        var child = children[j];
-        child.material = material;
-        child.material.needsUpdate = true;
-      }
-    }
-  }
-
-  updateRenderRect_() {
-    if (this.hmd && this.hmd.setRenderRect) {
-      var deviceInfo = this.manager.getDeviceInfo();
-      var leftRect = deviceInfo.getUndistortedViewportLeftEye();
-      var dpr = window.devicePixelRatio;
-      leftRect.x /= dpr;
-      leftRect.y /= dpr;
-      leftRect.width /= dpr;
-      leftRect.height /= dpr;
-
-      var rightRect = Util.clone(leftRect);
-      rightRect.x = (window.innerWidth - leftRect.x) - leftRect.width;
-
-      this.hmd.setRenderRect(leftRect, rightRect);
-    }
-  }
 }
 
 function requestFullscreen(canvas) {
@@ -208,7 +179,11 @@ function exitFullscreen(canvas) {
     canvas.exitFullscreen ||
     canvas.mozCancelFullScreen ||
     canvas.webkitExitFullscreen;
-  exitFullscreen && exitFullscreen.apply(canvas);
+  if (exitFullscreen) {
+    exitFullscreen.apply(canvas);
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  }
 }
 
 module.exports = PhotosphereRenderer;
