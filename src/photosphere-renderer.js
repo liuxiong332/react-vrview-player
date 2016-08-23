@@ -85,7 +85,7 @@ class PhotosphereRenderer extends Emitter {
 
   resize() {
     let canvas = this.renderer.domElement;
-    if (!this.effect.getVRDisplay()) {
+    if (!this.effect.isPresenting) {
       let width = canvas.offsetWidth;
       let height = canvas.offsetHeight;
       this.effect.setSize(width, height);
