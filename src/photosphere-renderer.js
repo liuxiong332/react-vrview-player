@@ -29,7 +29,6 @@ class PhotosphereRenderer extends Emitter {
   }
 
   init() {
-    var container = document.querySelector('body');
     var camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 100);
     var cameraDummy = new THREE.Object3D();
     cameraDummy.add(camera);
@@ -41,7 +40,6 @@ class PhotosphereRenderer extends Emitter {
 
     // Round down fractional DPR values for better performance.
     renderer.setPixelRatio(Math.max(1, Math.floor(window.devicePixelRatio)));
-    container.appendChild(renderer.domElement);
 
     var controls = new THREE.VRControls(camera);
     var effect = new THREE.VREffect(renderer);
@@ -54,14 +52,23 @@ class PhotosphereRenderer extends Emitter {
     this.initScenes_();
 
     window.addEventListener('resize', this.resize.bind(this));
-    // this.requestPresent();
+  }
+
+  getDOMElement() {
+    return this.renderer.domElement;
   }
 
   requestPresent() {
+    if (!this.effect.getVRDisplay()) {
+      return requestFullscreen(this.renderer.domElement);
+    }
     return this.effect.requestPresent();
   }
 
   exitPresent() {
+    if (!this.effect.getVRDisplay()) {
+      return exitFullscreen(this.renderer.domElement);
+    }
     return this.effect.exitPresent();
   }
 
@@ -186,7 +193,22 @@ class PhotosphereRenderer extends Emitter {
       this.hmd.setRenderRect(leftRect, rightRect);
     }
   }
+}
 
+function requestFullscreen(canvas) {
+  var requestFullscreen =
+    canvas.requestFullScreen ||
+    canvas.webkitRequestFullScreen ||
+    canvas.mozRequestFullScreen;
+  requestFullscreen.apply(canvas);
+}
+
+function exitFullscreen(canvas) {
+  var exitFullscreen =
+    canvas.exitFullscreen ||
+    canvas.mozCancelFullScreen ||
+    canvas.webkitExitFullscreen;
+  exitFullscreen && exitFullscreen.apply(canvas);
 }
 
 module.exports = PhotosphereRenderer;

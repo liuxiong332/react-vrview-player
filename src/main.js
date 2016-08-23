@@ -18,185 +18,144 @@
 var WebVRConfig = window.WebVRConfig || {}
 WebVRConfig.PREVENT_DISTORTION = true;
 
-// Initialize the loading indicator as quickly as possible to give the user
-// immediate feedback.
-var LoadingIndicator = require('./loading-indicator');
-var loadIndicator = new LoadingIndicator();
-
 // Include relevant polyfills.
 require('webvr-polyfill/src/main');
 
 var PhotosphereRenderer = require('./photosphere-renderer');
 var SceneLoader = require('./scene-loader');
-var Stats = require('./stats');
+var Emitter = require('./emitter');
 var Util = require('./util');
 
-window.addEventListener('load', init);
-
-var stats = new Stats();
-
-var loader = new SceneLoader();
-loader.on('error', onSceneError);
-loader.on('load', onSceneLoad);
-
-var renderer = new PhotosphereRenderer();
-renderer.on('error', onRenderError);
-
-var videoElement = null;
-// TODO: Make this not global.
-// Currently global in order to allow callbacks.
-var loadedScene = null;
-
-function init() {
-  if (!Util.isWebGLEnabled()) {
-    showError('WebGL not supported.');
-    return;
-  }
-  // Load the scene.
-  loader.loadScene();
-
-  if (Util.getQueryParameter('debug')) {
-    showStats();
-  }
-}
-
-function loadImage(src, params) {
-  renderer.on('load', onRenderLoad);
-  renderer.setPhotosphere(src, params);
-}
-
-function onSceneLoad(scene) {
-  if (!scene || !scene.isComplete()) {
-    showError('Scene failed to load');
-    return;
+module.exports = class RenderCreator extends Emitter {
+  constructor(options = {}) {
+    super();
+    this.init(options);
   }
 
-  loadedScene = scene;
-
-  var params = {
-    isStereo: scene.isStereo,
-  }
-  renderer.setDefaultLookDirection(scene.yaw || 0);
-
-  if (scene.preview) {
-    var onPreviewLoad = function() {
-      loadIndicator.hide();
-      renderer.removeListener('load', onPreviewLoad);
-      renderer.setPhotosphere(scene.image, params);
+  init(options) {
+    if (!Util.isWebGLEnabled()) {
+      this.emit('error', new Error('WebGL not supported.'));
+      return;
     }
-    renderer.removeListener('load', onRenderLoad);
-    renderer.on('load', onPreviewLoad);
-    renderer.setPhotosphere(scene.preview, params);
-  } else if (scene.video) {
-    if (Util.isIOS() || Util.isIE11()) {
-      // On iOS and IE 11, if an 'image' param is provided, load it instead of
-      // showing an error.
-      //
-      // TODO(smus): Once video textures are supported, remove this fallback.
-      if (scene.image) {
-        loadImage(scene.image, params);
-      } else {
-        showError('Video is not supported on this platform (iOS or IE11).');
+
+    this.onRenderLoad = this.onRenderLoad.bind(this);
+    this.onVideoLoad = this.onVideoLoad.bind(this);
+    this.onVideoTap = this.onVideoTap.bind(this);
+    this.onVideoError = this.onVideoError.bind(this);
+
+    this.renderer = new PhotosphereRenderer();
+    this.renderer.on('error', this.onRenderError.bind(this));
+
+    this.loadScene(options);
+
+    if (options.showStats) {
+      showStats();
+    }
+  }
+
+  loadScene(options) {
+    let renderer = this.renderer;
+    renderer.setDefaultLookDirection(options.yaw || 0);
+
+    if (options.preview) {
+      var onPreviewLoad = () => {
+        this.emit('load');
+        renderer.removeListener('load', onPreviewLoad);
+        renderer.setPhotosphere(options.image);
       }
-    } else {
-      // Load the video element.
-      videoElement = document.createElement('video');
-      videoElement.src = scene.video;
-      videoElement.loop = true;
-      videoElement.setAttribute('crossorigin', 'anonymous');
-      videoElement.addEventListener('canplaythrough', onVideoLoad);
-      videoElement.addEventListener('error', onVideoError);
+      renderer.removeListener('load', this.onRenderLoad);
+      renderer.on('load', onPreviewLoad);
+      renderer.setPhotosphere(options.preview);
+    } else if (options.video) {
+      if (Util.isIOS() || Util.isIE11()) {
+        // On iOS and IE 11, if an 'image' param is provided, load it instead of
+        // showing an error.
+        //
+        // TODO(smus): Once video textures are supported, remove this fallback.
+        this.emit('error', new Error('Video is not supported on this platform (iOS or IE11).'));
+      } else {
+        // Load the video element.
+        let videoElement = document.createElement('video');
+        videoElement.src = options.video;
+        videoElement.loop = true;
+        videoElement.setAttribute('crossorigin', 'anonymous');
+        videoElement.addEventListener('canplaythrough', this.onVideoLoad);
+        videoElement.addEventListener('error', this.onVideoError);
+        this.videoElement = videoElement;
+      }
+    } else if (options.image) {
+      // Otherwise, just render the photosphere.
+      renderer.on('load', this.onRenderLoad);
+      renderer.setPhotosphere(options.image);
     }
-  } else if (scene.image) {
-    // Otherwise, just render the photosphere.
-    loadImage(scene.image, params);
   }
 
-  console.log('Loaded scene', scene);
-}
+  onVideoLoad(event) {
+    let videoElement = event.target;
+    this.renderer.set360Video(videoElement);
 
-function onVideoLoad() {
-  // Render the stereo video.
-  var params = {
-    isStereo: loadedScene.isStereo,
+    // On mobile, tell the user they need to tap to start. Otherwise, autoplay.
+    if (!Util.isMobile()) {
+      // Hide loading indicator.
+      this.emit('load');
+      // Autoplay the video on desktop.
+      videoElement.play();
+    } else {
+      // Tell user to tap to start.
+      document.body.addEventListener('touchend', this.onVideoTap);
+    }
+
+    // Prevent onVideoLoad from firing multiple times.
+    videoElement.removeEventListener('canplaythrough', this.onVideoLoad);
   }
-  renderer.set360Video(videoElement, params);
 
-  // On mobile, tell the user they need to tap to start. Otherwise, autoplay.
-  if (!Util.isMobile()) {
-    // Hide loading indicator.
-    loadIndicator.hide();
-    // Autoplay the video on desktop.
+  onVideoTap() {
     videoElement.play();
-  } else {
-    // Tell user to tap to start.
-    showError('Tap to start video', 'Play');
-    document.body.addEventListener('touchend', onVideoTap);
+
+    // Prevent multiple play() calls on the video element.
+    document.body.removeEventListener('touchend', this.onVideoTap);
   }
 
-  // Prevent onVideoLoad from firing multiple times.
-  videoElement.removeEventListener('canplaythrough', onVideoLoad);
-}
+  onRenderLoad() {
+    // Hide loading indicator.
+    this.emit('load');
+  }
 
-function onVideoTap() {
-  hideError();
-  videoElement.play();
+  onRenderError(message) {
+    this.emit('error', new Error('Render: ' + message));
+  }
 
-  // Prevent multiple play() calls on the video element.
-  document.body.removeEventListener('touchend', onVideoTap);
-}
+  onVideoError(e) {
+    this.emit('error', e.target.error);
+  }
 
-function onRenderLoad() {
-  // Hide loading indicator.
-  loadIndicator.hide();
-}
+  showStats() {
+    var Stats = require('./stats');
+    var stats = this.stats = new Stats();
+    stats.setMode(0); // 0: fps, 1: ms
 
-function onSceneError(message) {
-  showError('Loader: ' + message);
-}
+    // Align bottom-left.
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = '0px';
+    stats.domElement.style.bottom = '0px';
+    document.body.appendChild(stats.domElement);
+  }
 
-function onRenderError(message) {
-  showError('Render: ' + message);
-}
+  renderWithStats() {
+    const loop = (time) => {
+      this.stats.begin();
+      this.renderer.render(time);
+      this.stats.end();
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
 
-function onVideoError(e) {
-  showError('Video load error');
-  console.log(e);
-}
-
-function showError(message, opt_title) {
-  // Hide loading indicator.
-  loadIndicator.hide();
-
-  var error = document.querySelector('#error');
-  if (error) {
-    error.classList.add('visible');
-    error.querySelector('.message').innerHTML = message;
-
-    var title = (opt_title !== undefined ? opt_title : 'Error');
-    error.querySelector('.title').innerHTML = title;
+  render() {
+    const loop = (time) => {
+      this.renderer.render(time);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
   }
 }
-
-function hideError() {
-  var error = document.querySelector('#error');
-  error.classList.remove('visible');
-}
-
-function showStats() {
-  stats.setMode(0); // 0: fps, 1: ms
-
-  // Align bottom-left.
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.left = '0px';
-  stats.domElement.style.bottom = '0px';
-  document.body.appendChild(stats.domElement);
-}
-
-function loop(time) {
-  stats.begin();
-  renderer.render(time);
-  stats.end();
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
