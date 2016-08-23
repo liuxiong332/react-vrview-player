@@ -22,19 +22,20 @@ WebVRConfig.PREVENT_DISTORTION = true;
 require('webvr-polyfill/src/main');
 
 var PhotosphereRenderer = require('./photosphere-renderer');
-var SceneLoader = require('./scene-loader');
 var Emitter = require('./emitter');
 var Util = require('./util');
 
-module.exports = class RenderCreator extends Emitter {
+module.exports = class RenderCreator {
   constructor(options = {}) {
-    super();
     this.init(options);
   }
 
   init(options) {
+    this.onLoad = options.onLoad;
+    this.onError = options.onError;
+
     if (!Util.isWebGLEnabled()) {
-      this.emit('error', new Error('WebGL not supported.'));
+      this.onError && this.onError(new Error('WebGL not supported.'));
       return;
     }
 
@@ -44,6 +45,7 @@ module.exports = class RenderCreator extends Emitter {
     this.onVideoError = this.onVideoError.bind(this);
 
     this.renderer = new PhotosphereRenderer();
+    this.canvas = this.renderer.getDOMElement();
     this.renderer.on('error', this.onRenderError.bind(this));
 
     this.loadScene(options);
@@ -59,7 +61,7 @@ module.exports = class RenderCreator extends Emitter {
 
     if (options.preview) {
       var onPreviewLoad = () => {
-        this.emit('load');
+        this.onLoad && this.onLoad();
         renderer.removeListener('load', onPreviewLoad);
         renderer.setPhotosphere(options.image);
       }
@@ -72,7 +74,7 @@ module.exports = class RenderCreator extends Emitter {
         // showing an error.
         //
         // TODO(smus): Once video textures are supported, remove this fallback.
-        this.emit('error', new Error('Video is not supported on this platform (iOS or IE11).'));
+        this.onError && this.onError(new Error('Video is not supported on this platform (iOS or IE11).'));
       } else {
         // Load the video element.
         let videoElement = document.createElement('video');
@@ -97,7 +99,7 @@ module.exports = class RenderCreator extends Emitter {
     // On mobile, tell the user they need to tap to start. Otherwise, autoplay.
     if (!Util.isMobile()) {
       // Hide loading indicator.
-      this.emit('load');
+      this.onLoad && this.onLoad();
       // Autoplay the video on desktop.
       videoElement.play();
     } else {
@@ -118,15 +120,15 @@ module.exports = class RenderCreator extends Emitter {
 
   onRenderLoad() {
     // Hide loading indicator.
-    this.emit('load');
+    this.onLoad && this.onLoad();
   }
 
   onRenderError(message) {
-    this.emit('error', new Error('Render: ' + message));
+    this.onError && this.onError(new Error('Render: ' + message));
   }
 
   onVideoError(e) {
-    this.emit('error', e.target.error);
+    this.onError && this.onError(e.target.error);
   }
 
   showStats() {
