@@ -50,8 +50,6 @@ class PhotosphereRenderer extends Emitter {
     this.effect = effect;
     this.controls = controls;
     this.initScenes_();
-
-    window.addEventListener('resize', this.resize.bind(this));
   }
 
   getDOMElement() {
@@ -81,15 +79,6 @@ class PhotosphereRenderer extends Emitter {
   render(timestamp) {
     this.controls.update();
     this.effect.render(this.scene, this.camera);
-  }
-
-  resize() {
-    let canvas = this.renderer.domElement;
-    if (!this.effect.isPresenting) {
-      let width = canvas.offsetWidth;
-      let height = canvas.offsetHeight;
-      this.effect.setSize(width, height);
-    }
   }
 
   setDefaultLookDirection(phi) {
