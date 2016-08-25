@@ -155,9 +155,16 @@ module.exports = class RenderCreator {
 
   render() {
     const loop = (time) => {
-      this.renderer.render(time);
-      requestAnimationFrame(loop);
+      if (!this.isStop) {
+        this.renderer.render(time);
+        requestAnimationFrame(loop);
+      }
     }
     requestAnimationFrame(loop);
+  }
+
+  stop() {
+    this.isStop = true;
+    this.videoElement = null;
   }
 }

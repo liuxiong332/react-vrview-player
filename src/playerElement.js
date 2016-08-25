@@ -38,6 +38,10 @@ class PlayerElement extends HTMLElement {
         break;
     }
   }
+
+  detachedCallback() {
+    this.player.stop();
+  }
 }
 
 module.exports = document.registerElement("vrview-player", PlayerElement);
