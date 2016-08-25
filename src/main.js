@@ -165,6 +165,6 @@ module.exports = class RenderCreator {
 
   stop() {
     this.isStop = true;
-    this.videoElement = null;
+    this.videoElement.pause();
   }
 }
