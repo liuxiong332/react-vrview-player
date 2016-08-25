@@ -128,6 +128,7 @@ module.exports = class RenderCreator {
   }
 
   onVideoError(e) {
+    e.target.removeEventListener('error', this.onVideoError);
     this.onError && this.onError(e.target.error);
   }
 
@@ -166,5 +167,6 @@ module.exports = class RenderCreator {
   stop() {
     this.isStop = true;
     this.videoElement.pause();
+    this.videoElement = null;
   }
 }
