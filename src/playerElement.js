@@ -20,6 +20,7 @@ class PlayerElement extends HTMLElement {
   attachedCallback() {
     let video = this.getAttribute('video');
     let yaw = this.getAttribute('yaw') || 0;
+    yaw = parseFloat(yaw);
     this.player = new RenderCreator({
       video, yaw, onError: this.onError.bind(this),
     });
@@ -35,6 +36,11 @@ class PlayerElement extends HTMLElement {
       case 'video': this.player.videoElement.src = newVal; break;
       case 'yaw':
         this.player.renderer.setDefaultLookDirection(newVal);
+        break;
+      case 'size':
+        if (newVal) {
+          this.player.renderer.effect.setSize(newVal.width, newVal.height);
+        }
         break;
     }
   }

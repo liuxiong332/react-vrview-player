@@ -44,7 +44,7 @@ module.exports = class RenderCreator {
     this.onVideoTap = this.onVideoTap.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
 
-    this.renderer = new PhotosphereRenderer();
+    this.renderer = new PhotosphereRenderer(options);
     this.canvas = this.renderer.getDOMElement();
     this.renderer.on('error', this.onRenderError.bind(this));
 

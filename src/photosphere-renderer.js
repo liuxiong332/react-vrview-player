@@ -29,6 +29,7 @@ class PhotosphereRenderer extends Emitter {
   }
 
   init() {
+    this.clearVRDisplay();
     var camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 100);
     var cameraDummy = new THREE.Object3D();
     cameraDummy.add(camera);
@@ -56,6 +57,16 @@ class PhotosphereRenderer extends Emitter {
     this.effect = effect;
     this.controls = controls;
     this.initScenes_();
+  }
+
+  clearVRDisplay() {
+    if (navigator.getVRDisplays) {
+      navigator.getVRDisplays().then((displays) => {
+        displays.forEach((vrDisplay) => {
+          vrDisplay && vrDisplay.resetPose();
+        });
+      });
+    }
   }
 
   getDOMElement() {
