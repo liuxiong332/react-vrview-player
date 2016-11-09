@@ -29,7 +29,7 @@ class PhotosphereRenderer extends Emitter {
   }
 
   init() {
-    var camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 100);
+    var camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 100);
     var cameraDummy = new THREE.Object3D();
     cameraDummy.add(camera);
 
@@ -44,6 +44,12 @@ class PhotosphereRenderer extends Emitter {
     var controls = new THREE.VRControls(camera);
     var effect = new THREE.VREffect(renderer);
     effect.setSize(window.innerWidth, window.innerHeight);
+
+    this.onMouseWheel_ = this.onMouseWheel_.bind(this);
+    window.addEventListener('wheel', this.onMouseWheel_);
+
+    this.minFocalLength = 3;
+    this.maxFocalLength = 36;
 
     this.camera = camera;
     this.renderer = renderer;
@@ -114,9 +120,26 @@ class PhotosphereRenderer extends Emitter {
     this.onTextureLoaded_(videoTexture);
   }
 
+  setFocalLengthLimit(min, max) {
+    if (min) {
+      this.minFocalLength = min;
+    }
+    if (max) {
+      this.maxFocalLength = max;
+    }
+  }
+
   initScenes_() {
     this.scene = this.createScene_();
     this.scene.add(this.camera.parent);
+  }
+
+  onMouseWheel_(event) {
+    let length = this.camera.getFocalLength();
+    let delta = length * event.deltaY / 1000;
+    length = length - delta;
+    length = Math.min(Math.max(length, this.minFocalLength), this.maxFocalLength);
+    this.camera.setFocalLength(length);
   }
 
   onTextureLoaded_(texture) {
@@ -152,6 +175,10 @@ class PhotosphereRenderer extends Emitter {
     scene.add(photoGroup);
 
     return scene;
+  }
+
+  destroy() {
+    window.removeEventListener('wheel', this.onMouseWheel_);
   }
 }
 

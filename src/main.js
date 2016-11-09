@@ -165,6 +165,7 @@ module.exports = class RenderCreator {
 
   stop() {
     this.isStop = true;
+    this.renderer.destroy();
     this.videoElement.removeEventListener('error', this.onVideoError);
     this.videoElement.pause();
     this.videoElement = null;
