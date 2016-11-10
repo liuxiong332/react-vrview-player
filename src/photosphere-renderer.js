@@ -145,12 +145,23 @@ class PhotosphereRenderer extends Emitter {
     this.scene.add(this.camera.parent);
   }
 
+  static isMouseEventInElement(event, element) {
+    let rect = element.getBoundingClientRect();
+    let pageX = event.pageX - window.scrollX;
+    let pageY = event.pageY - window.scrollY;
+    return pageX > rect.left && pageX < rect.right && pageY > rect.top && pageY < rect.bottom;
+  }
+
   onMouseWheel_(event) {
-    let length = this.camera.getFocalLength();
-    let delta = length * event.deltaY / 1000;
-    length = length - delta;
-    length = Math.min(Math.max(length, this.minFocalLength), this.maxFocalLength);
-    this.camera.setFocalLength(length);
+    if (PhotosphereRenderer.isMouseEventInElement(event, this.renderer.domElement)) {
+      let length = this.camera.getFocalLength();
+      let delta = length * event.deltaY / 1000;
+      length = length - delta;
+      length = Math.min(Math.max(length, this.minFocalLength), this.maxFocalLength);
+      this.camera.setFocalLength(length);
+      event.stopImmediatePropagation();
+      event.preventDefault();
+    }
   }
 
   onTextureLoaded_(texture) {
