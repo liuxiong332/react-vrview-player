@@ -19,6 +19,7 @@ window.THREE = THREE;
 require('three/examples/js/controls/VRControls');
 require('three/examples/js/effects/VREffect');
 var Util = require('./util');
+var MouseKeyboardVRDisplay = require('../vendor/webvr-polyfill/src/mouse-keyboard-vr-display');
 
 const XRevertMatrix = new THREE.Matrix4().makeScale(-1, 1, 1);
 
@@ -29,7 +30,6 @@ class PhotosphereRenderer extends Emitter {
   }
 
   init() {
-    this.clearVRDisplay();
     var camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 100);
     var cameraDummy = new THREE.Object3D();
     cameraDummy.add(camera);
@@ -46,9 +46,6 @@ class PhotosphereRenderer extends Emitter {
     var effect = new THREE.VREffect(renderer);
     effect.setSize(window.innerWidth, window.innerHeight);
 
-    this.onMouseWheel_ = this.onMouseWheel_.bind(this);
-    window.addEventListener('wheel', this.onMouseWheel_);
-
     this.minFocalLength = 3;
     this.maxFocalLength = 36;
 
@@ -56,6 +53,7 @@ class PhotosphereRenderer extends Emitter {
     this.renderer = renderer;
     this.effect = effect;
     this.controls = controls;
+    this.clearVRDisplay();
     this.initScenes_();
   }
 
@@ -64,8 +62,21 @@ class PhotosphereRenderer extends Emitter {
       navigator.getVRDisplays().then((displays) => {
         displays.forEach((vrDisplay) => {
           vrDisplay && vrDisplay.resetPose();
+          this.initVRDisplay(vrDisplay);
         });
       });
+    }
+  }
+
+  initVRDisplay(vrDisplay) {
+    if (vrDisplay instanceof MouseKeyboardVRDisplay) {
+      let domElement = this.renderer.domElement;
+      domElement.addEventListener('keydown', vrDisplay.onKeyDown_);
+      domElement.addEventListener('mousemove', vrDisplay.onMouseMove_);
+      domElement.addEventListener('mousedown', vrDisplay.onMouseDown_);
+      domElement.addEventListener('mouseup', vrDisplay.onMouseUp_);
+      this.onMouseWheel_ = this.onMouseWheel_.bind(this);
+      domElement.addEventListener('wheel', this.onMouseWheel_);
     }
   }
 
@@ -145,23 +156,14 @@ class PhotosphereRenderer extends Emitter {
     this.scene.add(this.camera.parent);
   }
 
-  static isMouseEventInElement(event, element) {
-    let rect = element.getBoundingClientRect();
-    let pageX = event.pageX - window.scrollX;
-    let pageY = event.pageY - window.scrollY;
-    return pageX > rect.left && pageX < rect.right && pageY > rect.top && pageY < rect.bottom;
-  }
-
   onMouseWheel_(event) {
-    if (PhotosphereRenderer.isMouseEventInElement(event, this.renderer.domElement)) {
-      let length = this.camera.getFocalLength();
-      let delta = length * event.deltaY / 1000;
-      length = length - delta;
-      length = Math.min(Math.max(length, this.minFocalLength), this.maxFocalLength);
-      this.camera.setFocalLength(length);
-      event.stopImmediatePropagation();
-      event.preventDefault();
-    }
+    let length = this.camera.getFocalLength();
+    let delta = length * event.deltaY / 1000;
+    length = length - delta;
+    length = Math.min(Math.max(length, this.minFocalLength), this.maxFocalLength);
+    this.camera.setFocalLength(length);
+    event.stopImmediatePropagation();
+    event.preventDefault();
   }
 
   onTextureLoaded_(texture) {
@@ -200,7 +202,6 @@ class PhotosphereRenderer extends Emitter {
   }
 
   destroy() {
-    window.removeEventListener('wheel', this.onMouseWheel_);
   }
 }
 

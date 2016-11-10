@@ -19,7 +19,7 @@ var WebVRConfig = window.WebVRConfig || {}
 WebVRConfig.PREVENT_DISTORTION = true;
 
 // Include relevant polyfills.
-require('webvr-polyfill/src/main');
+require('../vendor/webvr-polyfill/src/main');
 
 var PhotosphereRenderer = require('./photosphere-renderer');
 var Emitter = require('./emitter');

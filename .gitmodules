@@ -1,0 +1,3 @@
+[submodule "vendor/webvr-polyfill"]
+	path = vendor/webvr-polyfill
+	url = https://github.com/googlevr/webvr-polyfill.git

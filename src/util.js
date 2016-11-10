@@ -125,4 +125,11 @@ Util.isIE11 = function() {
   return navigator.userAgent.match(/Trident/);
 };
 
+Util.isMouseEventInElement = function(event, element) {
+  let rect = element.getBoundingClientRect();
+  let pageX = event.pageX - window.scrollX;
+  let pageY = event.pageY - window.scrollY;
+  return pageX > rect.left && pageX < rect.right && pageY > rect.top && pageY < rect.bottom;
+};
+
 module.exports = Util;
